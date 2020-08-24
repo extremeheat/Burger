@@ -100,6 +100,9 @@ if __name__ == "__main__":
         print(str(err))
         sys.exit(1)
 
+    # Must be explicitly specified
+    explicit_toppings = ['recipes']
+
     # Default options
     toppings = None
     output = sys.stdout
@@ -142,7 +145,11 @@ if __name__ == "__main__":
 
     # Get the toppings we want
     if toppings is None:
-        loaded_toppings = all_toppings.values()
+        loaded_toppings = []
+        for topping in all_toppings:
+            if topping in explicit_toppings:
+                continue
+            loaded_toppings.append(all_toppings[topping])
     else:
         loaded_toppings = []
         for topping in toppings:
