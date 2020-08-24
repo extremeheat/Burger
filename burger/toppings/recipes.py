@@ -80,6 +80,9 @@ class RecipesTopping(Topping):
             Converts a JSON item into a burger item.
             If the blob is a list, then a list is returned (if allowed).
             """
+            # Slight hack to deal with items in string format
+            if isinstance(blob, str):
+                blob = { 'item': blob, 'count': 1 }
             # If the key involves a list, then convert to a list and parse them all.
             if isinstance(blob, list):
                 if allow_lists:
@@ -132,8 +135,8 @@ class RecipesTopping(Topping):
                     if recipe_type.startswith("minecraft:"):
                         recipe_type = recipe_type[len("minecraft:"):]
 
-                    if recipe_type not in ("crafting_shaped", "crafting_shapeless"):
-                        # We only care about regular recipes, not furnace/loom/whatever ones.
+                    # ignore 'special' recipes
+                    if "special" in recipe_type:
                         continue
 
                     recipe = {}
@@ -141,7 +144,6 @@ class RecipesTopping(Topping):
 
                     if "group" in data:
                         recipe["group"] = data["group"]
-
 
                     assert "result" in data
                     recipe["makes"] = parse_item(data["result"], False)
@@ -266,7 +268,7 @@ class RecipesTopping(Topping):
             """Reads an itemstack from the given iterator of instructions"""
             stack = []
             while True:
-                ins = itr.next()
+                ins = itr.__next__()
                 if ins in ("bipush", "sipush"):
                     stack.append(ins.operands[0].value)
                 elif ins == "getstatic":
@@ -313,7 +315,7 @@ class RecipesTopping(Topping):
             recipes = []
             try:
                 while True:
-                    ins = itr.next()
+                    ins = itr.__next__()
                     if ins.mnemonic != "new":
                         # Wait until an item starts
                         continue
@@ -325,7 +327,7 @@ class RecipesTopping(Topping):
                     # The crafted item, first parameter
                     crafted_item = read_itemstack(itr)
 
-                    ins = itr.next()
+                    ins = itr.__next__()
                     # Size of the parameter array
                     if ins in ("bipush", "sipush"):
                         param_count = ins.operands[0].value
@@ -336,7 +338,7 @@ class RecipesTopping(Topping):
                     data = None
                     array = []
                     while num_astore < param_count:
-                        ins = itr.next()
+                        ins = itr.__next__()
                         # Read through the array; some strangeness of types,
                         # though.  Also, note that the array index is pushed,
                         # but we overwrite it with the second value and just
@@ -369,7 +371,7 @@ class RecipesTopping(Topping):
                         elif ins == "new":
                             data = read_itemstack(itr)
 
-                    ins = itr.next()
+                    ins = itr.__next__()
                     assert ins == "invokevirtual"
                     const = ins.operands[0]
 
@@ -386,13 +388,13 @@ class RecipesTopping(Topping):
                         try:
                             itr2 = iter(array)
                             while True:
-                                obj = itr2.next()
+                                obj = itr2.__next__()
                                 if isinstance(obj, list):
                                     # Pattern
                                     rows.append("".join(obj))
                                 elif isinstance(obj, six.string_types):
                                     # Character
-                                    item = itr2.next()
+                                    item = itr2.__next__()
                                     subs[obj] = item
                         except StopIteration:
                             pass
