@@ -208,6 +208,29 @@ class RecipesTopping(Topping):
                                 shape.append(shape_row)
                             recipe_choice["shape"] = shape
 
+                    else:
+                        recipe["type"] = recipe_type
+
+                        # Simplify ingredients schema
+                        if 'base' in data:
+                            ingredients = [data['base'], data['addition']]
+                        else:
+                            ingredients = data["ingredients"] if 'ingredients' in data else [data['ingredient']]
+
+                        recipe["ingredients"] = []
+                        for ingredient in ingredients:
+                            item = parse_item(ingredient)
+                            if isinstance(item, list):
+                                tmp = []
+                                for recipe_choice in matching_recipes:
+                                    for real_item in item:
+                                        recipe_choice_work = copy.deepcopy(recipe_choice)
+                                        recipe_choice_work["ingredients"].append(real_item)
+                                        tmp.append(recipe_choice_work)
+                                matching_recipes = tmp
+                            else:
+                                for recipe_choice in matching_recipes:
+                                    recipe_choice["ingredients"].append(item)
                     recipes.extend(matching_recipes)
                 except Exception as e:
                     print("Failed to parse %s: %s" % (recipe_id, e))
